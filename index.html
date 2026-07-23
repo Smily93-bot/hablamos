@@ -260,25 +260,72 @@ Return ONLY this JSON shape:
 correction when used: {"you":"","better":"","why":"one short sentence in ${S.help}"}`;
 }
 
-async function ask(history){
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(S.model)}:generateContent?key=${encodeURIComponent(S.key)}`;
-  const res = await fetch(url,{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({
-      system_instruction:{parts:[{text:prompt_()}]},
-      contents: history.map(t=>({role: t.who==='me'?'user':'model', parts:[{text:t.text}]})),
-      generationConfig:{responseMimeType:'application/json', maxOutputTokens:900, temperature:.85},
-    }),
-  });
-  if(res.status===400 || res.status===403) throw new Error('key');
-  if(res.status===429) throw new Error('quota');
-  if(!res.ok) throw new Error('net');
+/* Ask Google which models this key can actually use, and pick a fast one.
+   Model names change over time; discovering beats hardcoding. */
+async function discoverModel(){
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(S.key)}`);
+  if(!res.ok) throw new Error('discover');
   const data = await res.json();
+  const usable = (data.models||[])
+    .filter(m => (m.supportedGenerationMethods||[]).includes('generateContent'))
+    .map(m => (m.name||'').replace(/^models\//,''))
+    .filter(n => n && !/vision|embedding|aqa|image|tts|live|native-audio/i.test(n));
+  const pick = usable.find(n=>/flash-lite/.test(n)) || usable.find(n=>/flash/.test(n)) || usable[0];
+  if(!pick) throw new Error('discover');
+  return pick;
+}
+
+async function callModel(history, model){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(S.key)}`;
+  let res;
+  try{
+    res = await fetch(url,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        system_instruction:{parts:[{text:prompt_()}]},
+        contents: history.map(t=>({role: t.who==='me'?'user':'model', parts:[{text:t.text}]})),
+        generationConfig:{responseMimeType:'application/json', maxOutputTokens:900, temperature:.85},
+      }),
+    });
+  }catch(e){ const err=new Error('offline'); throw err; }
+
+  if(!res.ok){
+    let detail='';
+    try{ const b = await res.json(); detail = b?.error?.message || ''; }catch{}
+    const err = new Error(res.status===404 ? 'nomodel' : 'http');
+    err.status = res.status; err.detail = detail;
+    throw err;
+  }
+  return res.json();
+}
+
+async function ask(history){
+  let data;
+  try{
+    data = await callModel(history, S.model);
+  }catch(e){
+    if(e.message!=='nomodel') throw e;
+    // The saved model name is gone or unavailable — find a live one and retry.
+    const fresh = await discoverModel();
+    S.model = fresh; DB.set('model', fresh);
+    data = await callModel(history, fresh);
+  }
   const raw = data?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('') || '';
   const clean = raw.replace(/```json/g,'').replace(/```/g,'').trim();
   try{ return JSON.parse(clean); }
   catch{ const m = clean.match(/\{[\s\S]*\}/); if(m){ try{ return JSON.parse(m[0]); }catch{} }
     return {reply: clean.slice(0,300), gloss:'', correction:null, words:[], nudge:''}; }
+}
+
+function explain(e){
+  const s = e.status;
+  if(e.message==='offline') return 'No connection reached Google. Check your internet and try again.';
+  if(e.message==='discover') return 'That API key was rejected by Google. Open ⚙ and paste it again.';
+  if(s===400 || s===403) return 'Key problem: ' + (e.detail || 'Google rejected it. Open ⚙ and paste it again.');
+  if(s===429) return "You've hit today's free limit. It resets tomorrow, or switch to a lighter model in ⚙.";
+  if(s===503) return 'Google is busy right now. Wait a few seconds and try again.';
+  if(s) return `Google returned ${s}. ${e.detail || ''}`.trim();
+  return "Couldn't reach the tutor. Check your connection and try again.";
 }
 
 /* ── voice out ───────────────────────────────────────────── */
@@ -345,9 +392,7 @@ async function send(text){
     else { S.phase='idle'; paint(); speak(out.reply); }
   }catch(e){
     S.busy=false; S.phase='idle'; paint();
-    showErr(e.message==='key' ? 'That API key was rejected. Open ⚙ and paste it again.'
-         : e.message==='quota' ? "You've hit today's free limit. It resets tomorrow."
-         : "Couldn't reach the tutor. Check your connection and try again.");
+    showErr(explain(e));
   }
 }
 
@@ -412,6 +457,8 @@ function openSetup(){
       A file opened from Downloads can't use the microphone — browsers only allow that on a real web address. Drag this file onto
       <a href="https://app.netlify.com/drop" target="_blank" rel="noopener">app.netlify.com/drop</a> once. It's free, no account, and you get a link. Open that link instead and everything works.</p>
       <button class="go" id="kSave">Save and start</button>
+      <button class="ghost" id="kTest">Test this key</button>
+      <p class="note" id="kMsg" hidden></p>
       ${S.key? '<button class="ghost" id="kCancel">Cancel</button>':''}
     </div>`;
   $('veil').hidden=false;
@@ -420,6 +467,22 @@ function openSetup(){
     S.model = $('mIn').value.trim() || 'gemini-2.5-flash';
     DB.set('key',S.key); DB.set('model',S.model);
     $('veil').hidden=true; showErr(''); paint();
+  };
+  $('kTest').onclick = async () => {
+    const msg = $('kMsg'); msg.hidden=false;
+    msg.style.color='var(--muted)'; msg.textContent='Checking…';
+    const prev = S.key;
+    S.key = $('kIn').value.trim();
+    try{
+      const m = await discoverModel();
+      $('mIn').value = m;
+      msg.style.color='var(--glaze)';
+      msg.textContent = 'Key works. Using ' + m + '. Tap Save and start.';
+    }catch{
+      S.key = prev;
+      msg.style.color='var(--clay)';
+      msg.textContent = 'Google rejected this key. Make sure you copied the whole thing, and that the key was created for the Gemini API.';
+    }
   };
   const c=$('kCancel'); if(c) c.onclick = ()=>{ $('veil').hidden=true; };
 }
