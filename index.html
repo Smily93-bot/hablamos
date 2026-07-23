@@ -212,7 +212,7 @@ const HELP = {
 
 let S = {
   key:   DB.get('key',''),
-  model: DB.get('model','gemini-2.5-flash'),
+  model: DB.get('model','gemini-3-flash'),
   level: DB.get('level','A2'),
   scene: DB.get('scene','libre'),
   help:  DB.get('help','English'),
@@ -221,6 +221,10 @@ let S = {
   drawer:null, busy:false, phase:'idle', callOn:false, drill:null,
 };
 const H = () => HELP[S.help];
+
+// Google retired the 2.x family from the free tier. If an old name is
+// saved from a previous session, drop it rather than failing on it.
+if(/gemini-[012]/.test(S.model)){ S.model = 'gemini-3-flash'; DB.set('model', S.model); }
 
 /* ── helpers ─────────────────────────────────────────────── */
 const $ = id => document.getElementById(id);
@@ -261,19 +265,25 @@ correction when used: {"you":"","better":"","why":"one short sentence in ${S.hel
 }
 
 /* Ask Google which models this key can use, ranked best-first.
-   Pinned versions (-001) and preview builds often carry no free quota,
-   so plain aliases are strongly preferred. */
+   Google's free tier covers Flash and Flash-Lite in the current generation
+   only; Pro and the legacy 2.x family are paid. Pinned versions (-001) and
+   previews are unreliable, so plain aliases win. */
 let CANDIDATES = [];
 
-function rank(n){
+const gen = n => { const m = n.match(/gemini-(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : 0; };
+
+function freeish(n){
+  if(/pro/i.test(n)) return false;            // paid only
+  if(gen(n) && gen(n) < 3) return false;      // legacy family, paid only
+  return /flash/i.test(n);
+}
+
+function penalty(n){
   let s = 0;
-  if(/-\d{3}$/.test(n)) s += 100;              // pinned version: usually no free tier
-  if(/preview|exp|thinking/i.test(n)) s += 60; // limited or metered
-  if(/\d{2}-\d{2}/.test(n)) s += 40;           // date-stamped build
-  if(/2\.5-flash$/.test(n)) s -= 30;
-  else if(/2\.0-flash$/.test(n)) s -= 25;
-  else if(/flash-lite$/.test(n)) s -= 20;
-  else if(/flash/.test(n)) s -= 10;
+  if(/-\d{3}$/.test(n)) s += 100;              // pinned build
+  if(/preview|exp|thinking/i.test(n)) s += 60;
+  if(/\d{2}-\d{2}/.test(n)) s += 40;           // date-stamped
+  if(/flash-lite/i.test(n)) s += 5;            // fine, but plain Flash speaks better
   return s;
 }
 
@@ -281,14 +291,18 @@ async function discoverModels(){
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(S.key)}`);
   if(!res.ok) throw new Error('discover');
   const data = await res.json();
-  const usable = (data.models||[])
+  const all = (data.models||[])
     .filter(m => (m.supportedGenerationMethods||[]).includes('generateContent'))
     .map(m => (m.name||'').replace(/^models\//,''))
-    .filter(n => n && !/vision|embedding|aqa|image|tts|live|native-audio|gemma/i.test(n))
-    .sort((a,b)=>rank(a)-rank(b));
-  if(!usable.length) throw new Error('discover');
-  CANDIDATES = usable;
-  return usable;
+    .filter(n => n && !/vision|embedding|aqa|image|tts|live|native-audio|gemma|robotics|veo/i.test(n));
+
+  const good = all.filter(freeish);
+  const list = (good.length ? good : all)
+    .sort((a,b) => (penalty(a)-penalty(b)) || (gen(b)-gen(a)));
+
+  if(!list.length) throw new Error('discover');
+  CANDIDATES = list;
+  return list;
 }
 const discoverModel = async () => (await discoverModels())[0];
 
@@ -483,7 +497,7 @@ function openSetup(){
       <p class="note">1. Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a><br>
       2. Sign in and choose Create API key<br>
       3. Copy it and paste it above<br><br>
-      If a model name ever stops working, swap it here — <span style="font-family:var(--mono)">gemini-2.5-flash-lite</span> has a higher daily allowance.</p>
+      If a model name ever stops working, swap it here. Google's free tier covers Flash models — <span style="font-family:var(--mono)">gemini-3-flash</span> is the safe default, and <span style="font-family:var(--mono)">gemini-3.1-flash-lite</span> allows more requests per minute. Tapping Test picks a working one for you.</p>
       <p class="note" style="border-top:1px solid var(--line);padding-top:12px">
       <b style="color:var(--bone);font-weight:400">Calls not working?</b><br>
       A file opened from Downloads can't use the microphone — browsers only allow that on a real web address. Drag this file onto
