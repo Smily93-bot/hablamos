@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0C1E38">
+<title>hablamos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,500;1,6..72,300&family=Karla:wght@300;400;600&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+/* ── azulejo: cobalt tile, ochre glaze ─────────────────────────── */
+:root{
+  --ground:#0C1E38; --surface:#13294B; --raised:#1B355C; --line:#2C4A73;
+  --bone:#EDE7DA; --muted:#8FA5C4; --glaze:#A9C6E8; --ochre:#E9A63B; --clay:#D9705E;
+  --display:'Newsreader',Georgia,serif; --body:'Karla',system-ui,sans-serif; --mono:'Space Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--ground);color:var(--bone);font-family:var(--body);font-size:16px;overflow:hidden}
+button,textarea,input{font:inherit;color:inherit}
+button{background:none;border:none;cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--ochre);outline-offset:2px}
+.app{display:flex;flex-direction:column;height:100dvh;max-width:640px;margin:0 auto}
+
+/* header */
+header{padding:18px 20px 10px;border-bottom:1px solid var(--line);flex:0 0 auto}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:300;font-size:30px;display:flex;align-items:baseline;gap:3px}
+.mk{font-family:var(--display);color:var(--ochre);line-height:1;display:inline-block}
+.mk.flip{transform:rotate(180deg)}
+.tools{display:flex;gap:6px;align-items:center}
+.tag{font-family:var(--mono);font-size:11px;padding:4px 10px;border:1px solid var(--line);border-radius:99px;color:var(--muted)}
+.tag.live{color:var(--ochre);border-color:var(--ochre)}
+.tag.live2{color:var(--glaze);border-color:var(--glaze)}
+.sub{margin-top:4px;font-size:14px;color:var(--muted)}
+.row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-top:10px;scrollbar-width:none}
+.row::-webkit-scrollbar{display:none}
+.chip{font-family:var(--mono);font-size:11px;padding:5px 12px;border:1px solid var(--line);border-radius:99px;color:var(--muted);white-space:nowrap;transition:.15s}
+.chip.on{background:var(--ochre);border-color:var(--ochre);color:var(--ground)}
+.div{width:1px;background:var(--line);flex:0 0 1px;margin:0 4px}
+
+/* drawer */
+.drawer{background:var(--surface);border-bottom:1px solid var(--line);padding:16px 20px;max-height:38vh;overflow-y:auto;flex:0 0 auto}
+.dlabel{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;margin-bottom:12px}
+.fix{margin-bottom:14px;font-size:14px}
+.fix .was{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--clay)}
+.fix .now{color:var(--ochre)}
+.fix .why{font-size:12px;color:var(--muted);margin-top:3px}
+.word{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.word .es{font-family:var(--display);font-size:19px}
+.word .mn{font-size:12px;color:var(--muted);margin-top:2px}
+.mini{font-family:var(--mono);font-size:11px;padding:4px 9px;border:1px solid var(--line);border-radius:99px;color:var(--ochre);white-space:nowrap}
+.x{font-family:var(--mono);font-size:12px;color:var(--muted);padding:4px 6px}
+
+/* transcript */
+main{flex:1 1 auto;overflow-y:auto;padding:22px 20px;scrollbar-width:thin}
+main::-webkit-scrollbar{width:5px}
+main::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.turn{margin-bottom:24px;animation:rise .3s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.her{display:flex;gap:8px;align-items:flex-start}
+.her .es{font-family:var(--display);font-size:20px;line-height:1.45;color:var(--glaze)}
+.gloss{font-size:12px;color:var(--muted);margin-top:4px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.act{font-family:var(--mono);font-size:11px;padding:4px 9px;border:1px solid var(--line);border-radius:99px;color:var(--muted)}
+.act.gold{color:var(--ochre)}
+.act.kept{color:var(--glaze);border-color:var(--glaze)}
+.act.dash{border-style:dashed;color:var(--ochre)}
+.me{padding-left:16px;border-left:2px solid var(--line)}
+.me.fixed{border-left-color:var(--ochre)}
+.me .said{font-size:17px;line-height:1.5}
+.me.fixed .said{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--clay)}
+.me .better{font-family:var(--display);font-size:18px;color:var(--ochre);margin-top:4px}
+.empty{text-align:center;padding:44px 0}
+.empty p{color:var(--muted)}
+.empty .it{font-family:var(--display);font-style:italic;font-size:18px;margin-top:10px}
+.dots{font-family:var(--mono);color:var(--muted);padding-left:16px}
+
+/* composer */
+.bar{flex:0 0 auto;border-top:1px solid var(--line);background:var(--surface);padding:14px 20px calc(14px + env(safe-area-inset-bottom))}
+.compose{display:flex;gap:8px;align-items:flex-end}
+textarea{flex:1;background:var(--ground);border:1px solid var(--line);border-radius:10px;padding:12px;resize:none;max-height:110px;outline:none}
+.send{font-family:var(--mono);font-size:13px;padding:12px 15px;border-radius:10px;background:var(--raised);color:var(--muted)}
+.send.ready{background:var(--bone);color:var(--ground)}
+.call-btn{flex:0 0 48px;width:48px;height:48px;border-radius:99px;background:var(--ochre);color:var(--ground);font-family:var(--display);font-size:24px;display:flex;align-items:center;justify-content:center}
+.incall{display:flex;flex-direction:column;align-items:center;gap:10px}
+.orb-wrap{position:relative;width:76px;height:76px;display:flex;align-items:center;justify-content:center}
+.ring{position:absolute;width:76px;height:76px;border-radius:99px;background:var(--ochre);animation:ring 1.9s cubic-bezier(.3,0,.2,1) infinite}
+@keyframes ring{0%{transform:scale(1);opacity:.5}70%{transform:scale(1.9);opacity:0}100%{opacity:0}}
+.orb{position:relative;width:68px;height:68px;border-radius:99px;background:var(--ochre);color:var(--ground);font-family:var(--display);font-size:30px;display:flex;align-items:center;justify-content:center}
+.orb.talking{background:var(--glaze)}
+.state{font-family:var(--mono);font-size:11px;letter-spacing:.07em;color:var(--muted)}
+.interim{font-size:14px;font-style:italic;text-align:center}
+.hang{font-family:var(--mono);font-size:11px;padding:8px 16px;border:1px solid var(--clay);border-radius:99px;color:var(--clay)}
+.err{margin:0 20px 8px;padding:9px 12px;border:1px solid var(--clay);border-radius:8px;background:var(--raised);color:var(--clay);font-size:13px}
+
+/* overlays */
+.veil{position:fixed;inset:0;z-index:40;background:rgba(6,14,28,.93);display:flex;align-items:center;justify-content:center;padding:20px}
+.card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px;animation:rise .3s ease both}
+.card h2{font-family:var(--display);font-weight:300;font-size:24px;margin:8px 0 16px}
+.card ol{list-style:none}
+.card li{display:flex;gap:12px;font-size:14px;line-height:1.6;margin-bottom:12px}
+.card li b{font-family:var(--mono);color:var(--ochre);font-weight:400;flex:0 0 auto}
+.go{width:100%;margin-top:20px;padding:13px;border-radius:10px;background:var(--ochre);color:var(--ground);font-family:var(--mono);font-size:13px}
+.ghost{width:100%;margin-top:8px;padding:11px;border-radius:10px;border:1px solid var(--line);color:var(--muted);font-family:var(--mono);font-size:12px}
+input[type=password],input[type=text]{width:100%;background:var(--ground);border:1px solid var(--line);border-radius:10px;padding:12px;outline:none;font-family:var(--mono);font-size:13px}
+.card a{color:var(--ochre)}
+.note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px}
+.drill{text-align:center;max-width:360px;width:100%;animation:rise .3s ease both}
+.drill .phrase{font-family:var(--display);font-size:29px;line-height:1.3}
+.drill .pct{font-family:var(--display);font-size:56px;line-height:1;margin-top:22px}
+.drill .pct span{font-size:22px}
+.drill .verdict{font-family:var(--mono);font-size:13px;margin-top:4px}
+.drill .heardit{font-size:14px;font-style:italic;color:var(--muted);margin-top:12px}
+.drill .btns{display:flex;gap:8px;justify-content:center;margin-top:28px}
+.drill .btns button{font-family:var(--mono);font-size:12px;padding:9px 16px;border-radius:99px}
+.b-out{border:1px solid var(--line)}
+.b-fill{background:var(--bone);color:var(--ground)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <h1><span class="mk" style="font-size:30px">¿</span><span>hablamos</span><span class="mk flip" style="font-size:30px">¿</span></h1>
+      <div class="tools">
+        <button class="tag" id="tFix">✎ 0</button>
+        <button class="tag" id="tVoc">★ 0</button>
+        <button class="tag" id="tSet">⚙</button>
+      </div>
+    </div>
+    <p class="sub">Speak Spanish out loud. Get repaired mid-sentence.</p>
+    <div class="row" id="rowTop"></div>
+    <div class="row" id="rowScene"></div>
+  </header>
+
+  <div class="drawer" id="drawer" hidden></div>
+  <main id="feed"></main>
+  <div class="err" id="err" hidden></div>
+
+  <div class="bar">
+    <div class="compose" id="compose">
+      <textarea id="draft" rows="1" placeholder="Escribe en español…"></textarea>
+      <button class="send" id="send">enviar</button>
+      <button class="call-btn" id="call" title="Start a call">¿</button>
+    </div>
+    <div class="incall" id="incall" hidden>
+      <div class="orb-wrap"><span class="ring" id="ring" hidden></span><button class="orb" id="orb">¿</button></div>
+      <p class="state" id="state">EN LLAMADA</p>
+      <p class="interim" id="interim"></p>
+      <button class="hang" id="hang">colgar</button>
+    </div>
+  </div>
+</div>
+
+<div class="veil" id="veil" hidden><div id="veilBody"></div></div>
+
+<script>
+/* ── storage ─────────────────────────────────────────────── */
+let STORAGE_OK = true;
+try{ localStorage.setItem('hb:test','1'); localStorage.removeItem('hb:test'); }
+catch{ STORAGE_OK = false; }
+
+const MEM = {};
+const DB = {
+  get(k, d){
+    if(!STORAGE_OK) return (k in MEM)? MEM[k] : d;
+    try{ const v = localStorage.getItem('hb:'+k); return v===null? d : JSON.parse(v); }catch{ return d; }
+  },
+  set(k, v){
+    MEM[k]=v;
+    if(!STORAGE_OK) return;
+    try{ localStorage.setItem('hb:'+k, JSON.stringify(v)); }catch{ STORAGE_OK=false; }
+  },
+};
+
+/* ── config ──────────────────────────────────────────────── */
+const LEVELS = [{id:'A1',rate:.78},{id:'A2',rate:.86},{id:'B1',rate:.95},{id:'B2',rate:1.02}];
+const SCENES = [
+  {id:'libre', es:'Charla libre',        en:'Free conversation'},
+  {id:'cafe',  es:'En el café',          en:'Ordering at a café'},
+  {id:'viaje', es:'En el aeropuerto',    en:'At the airport'},
+  {id:'obra',  es:'En la obra',          en:'On a construction site, talking to engineers'},
+  {id:'medico',es:'En el médico',        en:'At the doctor'},
+  {id:'amigos',es:'Conociendo a alguien',en:'Meeting someone new'},
+];
+const HELP = {
+  English:{dir:'ltr',label:'English',fixes:"Today's fixes",vocab:'My words',
+    emptyFix:"No corrections yet. Say something in Spanish and I'll repair it here.",
+    emptyVoc:'No saved words yet. Tap any word under a reply to keep it.',
+    title:'How this works',
+    steps:['Tap ¿ to start a call. Marisol speaks, then waits. Just talk — no buttons.',
+           'Get it wrong on purpose. Your sentence gets crossed out and rewritten in gold, with the reason underneath.',
+           'Tap a word to save it. Saved words stay on this device, and you can drill their pronunciation.',
+           'Set your level first. A1 is slow and short; B2 is full speed.'],
+    begin:'Start', say:'Say it', listening:'Listening…', again:'Again', close:'Close',
+    good:'Clear', mid:'Close', low:'Not quite'},
+  'العربية':{dir:'rtl',label:'العربية',fixes:'تصحيحات اليوم',vocab:'كلماتي',
+    emptyFix:'لا توجد تصحيحات بعد. تحدثي بالإسبانية وسأصححها هنا.',
+    emptyVoc:'لا توجد كلمات محفوظة. اضغطي على أي كلمة تحت الرد لحفظها.',
+    title:'كيف يعمل هذا التطبيق',
+    steps:['اضغطي على ¿ لبدء مكالمة. ماريسول تتحدث ثم تنتظر. تكلمي فقط — بدون أزرار.',
+           'أخطئي بلا خوف. جملتك تُشطب وتُعاد كتابتها بالذهبي مع السبب تحتها.',
+           'اضغطي على أي كلمة لحفظها. الكلمات تبقى على هذا الجهاز ويمكنك تدريب نطقها.',
+           'اختاري مستواك أولاً. A1 بطيء وقصير، وB2 بسرعة كاملة.'],
+    begin:'ابدئي', say:'انطقيها', listening:'أستمع…', again:'مرة أخرى', close:'إغلاق',
+    good:'واضح', mid:'قريب', low:'ليس بعد'},
+};
+
+let S = {
+  key:   DB.get('key',''),
+  model: DB.get('model','gemini-2.5-flash'),
+  level: DB.get('level','A2'),
+  scene: DB.get('scene','libre'),
+  help:  DB.get('help','English'),
+  vocab: DB.get('vocab',[]),
+  turns: [],
+  drawer:null, busy:false, phase:'idle', callOn:false, drill:null,
+};
+const H = () => HELP[S.help];
+
+/* ── helpers ─────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zñ\s]/g,' ').replace(/\s+/g,' ').trim();
+
+function lev(a,b){
+  const m=a.length,n=b.length; if(!m)return n; if(!n)return m;
+  let p=Array.from({length:n+1},(_,i)=>i);
+  for(let i=1;i<=m;i++){ const c=[i];
+    for(let j=1;j<=n;j++) c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));
+    p=c; }
+  return p[n];
+}
+const score = (t,s) => { const A=norm(t),B=norm(s); if(!A||!B) return 0;
+  return Math.max(0, Math.round((1 - lev(A,B)/Math.max(A.length,B.length))*100)); };
+
+function showErr(m){ const e=$('err'); if(!m){e.hidden=true;return;} e.textContent=m; e.hidden=false; }
+
+/* ── model call (Google Gemini, free tier) ───────────────── */
+function prompt_(){
+  const sc = SCENES.find(x=>x.id===S.scene);
+  return `You are Marisol, a warm, patient Spanish conversation partner from Madrid. The learner is CEFR level ${S.level}. Their support language is ${S.help} — every explanation goes in ${S.help}.
+
+Scenario: ${sc.en}. Stay in it and push it forward with real questions.
+
+Rules:
+- "reply" is ONLY Spanish. Match ${S.level}: at A1 use present tense and 6-12 word sentences; at B2 speak naturally with idioms.
+- Always end "reply" with a question.
+- Keep "reply" to 1-3 sentences. It is spoken aloud: no lists, no emoji, no parentheses.
+- If the learner writes English or Arabic, answer their meaning in Spanish and model how they could have said it.
+- Correct at most ONE thing per turn, the one that matters most. Ignore typos and missing accents. If the turn was fine, correction is null.
+- In "words", pick 1-3 words or short phrases from YOUR reply worth keeping at level ${S.level}. Skip obvious ones like hola or si.
+
+Return ONLY this JSON shape:
+{"reply":"","gloss":"one line in ${S.help}","correction":null,"words":[{"es":"","meaning":""}],"nudge":""}
+correction when used: {"you":"","better":"","why":"one short sentence in ${S.help}"}`;
+}
+
+async function ask(history){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(S.model)}:generateContent?key=${encodeURIComponent(S.key)}`;
+  const res = await fetch(url,{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      system_instruction:{parts:[{text:prompt_()}]},
+      contents: history.map(t=>({role: t.who==='me'?'user':'model', parts:[{text:t.text}]})),
+      generationConfig:{responseMimeType:'application/json', maxOutputTokens:900, temperature:.85},
+    }),
+  });
+  if(res.status===400 || res.status===403) throw new Error('key');
+  if(res.status===429) throw new Error('quota');
+  if(!res.ok) throw new Error('net');
+  const data = await res.json();
+  const raw = data?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('') || '';
+  const clean = raw.replace(/```json/g,'').replace(/```/g,'').trim();
+  try{ return JSON.parse(clean); }
+  catch{ const m = clean.match(/\{[\s\S]*\}/); if(m){ try{ return JSON.parse(m[0]); }catch{} }
+    return {reply: clean.slice(0,300), gloss:'', correction:null, words:[], nudge:''}; }
+}
+
+/* ── voice out ───────────────────────────────────────────── */
+function speak(text, done){
+  const synth = window.speechSynthesis;
+  if(!synth || !text){ done&&done(); return; }
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='es-ES';
+  const v = synth.getVoices().find(x=>(x.lang||'').toLowerCase().startsWith('es'));
+  if(v) u.voice=v;
+  u.rate = (LEVELS.find(l=>l.id===S.level)||{}).rate || .9;
+  u.pitch = 1.02;
+  u.onend = ()=>done&&done();
+  u.onerror = ()=>done&&done();
+  synth.speak(u);
+}
+if(window.speechSynthesis) window.speechSynthesis.onvoiceschanged = ()=>{};
+
+/* ── voice in ────────────────────────────────────────────── */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec=null, mode='call';
+function recog(){
+  if(!SR) return null;
+  if(rec) return rec;
+  rec = new SR(); rec.lang='es-ES'; rec.continuous=false; rec.interimResults=true; rec.maxAlternatives=1;
+  rec.onresult = e => {
+    let interim='', final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal) final+=t; else interim+=t;
+    }
+    if(interim){ $('interim').textContent = interim; }
+    if(final.trim()){
+      $('interim').textContent='';
+      try{ rec.stop(); }catch{}
+      if(mode==='drill') endDrill(final); else send(final);
+    }
+  };
+  rec.onend = () => { if(mode==='call' && S.callOn && S.phase==='listening'){ try{ rec.start(); }catch{} } };
+  rec.onerror = e => {
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+      S.callOn=false; S.phase='idle'; S.drill=null; paint();
+      showErr('Microphone is blocked. Allow it in your browser settings, then start again.');
+    }
+  };
+  return rec;
+}
+function listen(){ const r=recog(); if(!r) return; $('interim').textContent=''; S.phase='listening'; paint(); try{ r.start(); }catch{} }
+
+/* ── conversation ────────────────────────────────────────── */
+async function send(text){
+  if(!text || !text.trim()) return;
+  if(!S.key){ openSetup(); return; }
+  showErr(''); S.busy=true; S.phase='thinking';
+  S.turns.push({who:'me', text:text.trim()});
+  paint();
+  try{
+    const out = await ask(S.turns);
+    for(let i=S.turns.length-1;i>=0;i--){ if(S.turns[i].who==='me'){ S.turns[i].correction = out.correction||null; break; } }
+    S.turns.push({who:'her', text:out.reply||'', gloss:out.gloss||'', nudge:out.nudge||'', words:out.words||[]});
+    S.busy=false;
+    if(S.callOn){ S.phase='speaking'; paint(); speak(out.reply, ()=>{ if(S.callOn) listen(); else {S.phase='idle';paint();} }); }
+    else { S.phase='idle'; paint(); speak(out.reply); }
+  }catch(e){
+    S.busy=false; S.phase='idle'; paint();
+    showErr(e.message==='key' ? 'That API key was rejected. Open ⚙ and paste it again.'
+         : e.message==='quota' ? "You've hit today's free limit. It resets tomorrow."
+         : "Couldn't reach the tutor. Check your connection and try again.");
+  }
+}
+
+function startCall(){
+  if(!S.key){ openSetup(); return; }
+  if(!SR){ showErr('Voice calls need Chrome, Edge, or Safari. Chat works everywhere.'); return; }
+  showErr(''); mode='call'; S.callOn=true;
+  const opener = S.turns.length ? 'Vale, seguimos. ¿Por dónde íbamos?' : '¡Hola! Soy Marisol. ¿Cómo te llamas y qué tal tu día?';
+  S.turns.push({who:'her', text:opener, gloss:'', nudge:'', words:[]});
+  S.phase='speaking'; paint();
+  speak(opener, ()=>{ if(S.callOn) listen(); });
+}
+function endCall(){
+  S.callOn=false; S.phase='idle'; $('interim').textContent='';
+  try{ rec&&rec.stop(); }catch{}
+  window.speechSynthesis&&window.speechSynthesis.cancel();
+  paint();
+}
+
+/* ── drill ───────────────────────────────────────────────── */
+let target='';
+function startDrill(phrase){
+  if(!SR){ showErr('Pronunciation practice needs Chrome, Edge, or Safari.'); return; }
+  if(S.callOn) endCall();
+  target=phrase; mode='drill';
+  S.drill={phrase, stage:'playing', said:'', pct:null}; paint();
+  speak(phrase, ()=>{ if(S.drill){ S.drill.stage='listening'; paint(); listen(); } });
+}
+function endDrill(said){
+  S.phase='idle'; mode='call';
+  S.drill={phrase:target, stage:'done', said, pct:score(target,said)};
+  paint();
+}
+function closeDrill(){
+  mode='call'; S.drill=null; S.phase='idle';
+  try{ rec&&rec.stop(); }catch{}
+  window.speechSynthesis&&window.speechSynthesis.cancel();
+  paint();
+}
+
+/* ── vocab ───────────────────────────────────────────────── */
+const kept = es => S.vocab.some(v=>norm(v.es)===norm(es));
+function keep(w){ if(kept(w.es)) return; S.vocab.unshift({es:w.es, meaning:w.meaning, at:Date.now()}); DB.set('vocab',S.vocab); paint(); }
+function drop(es){ S.vocab = S.vocab.filter(v=>v.es!==es); DB.set('vocab',S.vocab); paint(); }
+
+/* ── overlays ────────────────────────────────────────────── */
+function openSetup(){
+  const h=H();
+  $('veilBody').innerHTML = `
+    <div class="card" dir="ltr">
+      <span class="mk" style="font-size:38px">¿</span>
+      <h2>Connect your free key</h2>
+      <p class="note" style="margin-bottom:14px">This app runs on Google's Gemini free tier. Getting a key takes about a minute and needs no card. It's stored only on this device and never leaves it except to talk to Google.</p>
+      <input type="password" id="kIn" placeholder="Paste your API key" value="${esc(S.key)}" autocomplete="off">
+      <input type="text" id="mIn" placeholder="Model" value="${esc(S.model)}" style="margin-top:8px">
+      <p class="note">1. Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a><br>
+      2. Sign in and choose Create API key<br>
+      3. Copy it and paste it above<br><br>
+      If a model name ever stops working, swap it here — <span style="font-family:var(--mono)">gemini-2.5-flash-lite</span> has a higher daily allowance.</p>
+      <p class="note" style="border-top:1px solid var(--line);padding-top:12px">
+      <b style="color:var(--bone);font-weight:400">Calls not working?</b><br>
+      A file opened from Downloads can't use the microphone — browsers only allow that on a real web address. Drag this file onto
+      <a href="https://app.netlify.com/drop" target="_blank" rel="noopener">app.netlify.com/drop</a> once. It's free, no account, and you get a link. Open that link instead and everything works.</p>
+      <button class="go" id="kSave">Save and start</button>
+      ${S.key? '<button class="ghost" id="kCancel">Cancel</button>':''}
+    </div>`;
+  $('veil').hidden=false;
+  $('kSave').onclick = () => {
+    S.key = $('kIn').value.trim();
+    S.model = $('mIn').value.trim() || 'gemini-2.5-flash';
+    DB.set('key',S.key); DB.set('model',S.model);
+    $('veil').hidden=true; showErr(''); paint();
+  };
+  const c=$('kCancel'); if(c) c.onclick = ()=>{ $('veil').hidden=true; };
+}
+
+function openIntro(){
+  const h=H();
+  $('veilBody').innerHTML = `
+    <div class="card" dir="${h.dir}">
+      <span class="mk" style="font-size:38px">¿</span>
+      <h2>${esc(h.title)}</h2>
+      <ol>${h.steps.map((s,i)=>`<li><b>${i+1}</b><span>${esc(s)}</span></li>`).join('')}</ol>
+      <div class="row" style="margin-top:14px">
+        ${Object.keys(HELP).map(k=>`<button class="chip ${k===S.help?'on':''}" data-h="${esc(k)}">${esc(HELP[k].label)}</button>`).join('')}
+      </div>
+      <button class="go" id="iGo">${esc(h.begin)}</button>
+    </div>`;
+  $('veil').hidden=false;
+  $('veilBody').querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{ S.help=b.dataset.h; DB.set('help',S.help); openIntro(); });
+  $('iGo').onclick = () => { DB.set('seen',1); $('veil').hidden=true; if(!S.key) openSetup(); };
+}
+
+function paintDrill(){
+  const h=H(), d=S.drill;
+  const col = d.pct>=80?'var(--glaze)': d.pct>=55?'var(--ochre)':'var(--clay)';
+  const verdict = d.pct>=80?h.good : d.pct>=55?h.mid : h.low;
+  $('veilBody').innerHTML = `
+    <div class="drill">
+      <p class="state">${d.stage==='listening'? esc(h.listening.toUpperCase()) : d.stage==='playing'?'▶':''}</p>
+      <p class="phrase">${esc(d.phrase)}</p>
+      ${d.stage==='listening'? '<div class="orb-wrap" style="margin:26px auto 0"><span class="ring"></span><span class="orb"></span></div>':''}
+      ${d.stage==='done'? `<p class="pct" style="color:${col}">${d.pct}<span>%</span></p>
+        <p class="verdict" style="color:${col}" dir="${h.dir}">${esc(verdict)}</p>
+        ${d.said?`<p class="heardit">“${esc(d.said)}”</p>`:''}`:''}
+      <div class="btns">
+        <button class="b-out" id="dAgain" dir="${h.dir}">${esc(h.again)}</button>
+        <button class="b-fill" id="dClose" dir="${h.dir}">${esc(h.close)}</button>
+      </div>
+    </div>`;
+  $('veil').hidden=false;
+  $('dAgain').onclick = ()=>startDrill(d.phrase);
+  $('dClose').onclick = closeDrill;
+}
+
+/* ── render ──────────────────────────────────────────────── */
+function paint(){
+  const h=H();
+
+  // chips
+  $('rowTop').innerHTML =
+    LEVELS.map(l=>`<button class="chip ${l.id===S.level?'on':''}" data-lv="${l.id}">${l.id}</button>`).join('')
+    + '<span class="div"></span>'
+    + Object.keys(HELP).map(k=>`<button class="chip ${k===S.help?'on':''}" data-hp="${esc(k)}">${esc(HELP[k].label)}</button>`).join('');
+  $('rowScene').innerHTML = SCENES.map(s=>`<button class="chip ${s.id===S.scene?'on':''}" data-sc="${s.id}">${esc(s.es)}</button>`).join('');
+
+  const fixes = S.turns.filter(t=>t.correction).map(t=>t.correction);
+  $('tFix').textContent = '✎ '+fixes.length;
+  $('tFix').className = 'tag'+(S.drawer==='fix'||fixes.length?' live':'');
+  $('tVoc').textContent = '★ '+S.vocab.length;
+  $('tVoc').className = 'tag'+(S.drawer==='voc'||S.vocab.length?' live2':'');
+
+  // drawer
+  const dr=$('drawer');
+  if(!S.drawer){ dr.hidden=true; }
+  else{
+    dr.hidden=false;
+    if(S.drawer==='fix'){
+      dr.innerHTML = `<p class="dlabel" style="color:var(--ochre)" dir="${h.dir}">${esc(h.fixes)}</p>` + (
+        fixes.length? fixes.map(f=>`<div class="fix"><span class="was">${esc(f.you)}</span><span class="now">  →  ${esc(f.better)}</span><p class="why" dir="${h.dir}">${esc(f.why)}</p></div>`).join('')
+        : `<p style="font-size:14px;color:var(--muted)" dir="${h.dir}">${esc(h.emptyFix)}</p>`);
+    } else {
+      dr.innerHTML = `<p class="dlabel" style="color:var(--glaze)" dir="${h.dir}">${esc(h.vocab)}</p>` + (
+        S.vocab.length? S.vocab.map(v=>`<div class="word"><div><p class="es">${esc(v.es)}</p><p class="mn" dir="${h.dir}">${esc(v.meaning)}</p></div>
+          <div style="display:flex;gap:4px"><button class="mini" data-say="${esc(v.es)}" dir="${h.dir}">${esc(h.say)}</button><button class="x" data-del="${esc(v.es)}">✕</button></div></div>`).join('')
+        : `<p style="font-size:14px;color:var(--muted)" dir="${h.dir}">${esc(h.emptyVoc)}</p>`);
+    }
+  }
+
+  // feed
+  const feed=$('feed');
+  feed.innerHTML = (!S.turns.length && !S.busy)
+    ? `<div class="empty"><span class="mk" style="font-size:60px;color:var(--line)">¿</span>
+       <p class="it">Empieza cuando quieras.</p><p style="font-size:14px;margin-top:6px">Start a call, or type your first line below.</p></div>`
+    : S.turns.map(t => t.who==='her'
+      ? `<div class="turn her"><span class="mk" style="font-size:16px;color:var(--glaze)">¿</span><div style="flex:1">
+           <p class="es">${esc(t.text)}</p>
+           ${t.gloss?`<p class="gloss" dir="${h.dir}">${esc(t.gloss)}</p>`:''}
+           <div class="acts">
+             <button class="act" data-say="${esc(t.text)}">▶</button>
+             <button class="act gold" data-drill="${esc(t.text)}" dir="${h.dir}">${esc(h.say)}</button>
+             ${(t.words||[]).map(w=>`<button class="act ${kept(w.es)?'kept':''}" data-keep="${esc(w.es)}" data-mean="${esc(w.meaning)}">${kept(w.es)?'★':'☆'} ${esc(w.es)}</button>`).join('')}
+             ${t.nudge?`<button class="act dash" data-fill="${esc(t.nudge)}">“${esc(t.nudge)}”</button>`:''}
+           </div></div></div>`
+      : `<div class="turn me ${t.correction?'fixed':''}">
+           <p class="said">${esc(t.text)}</p>
+           ${t.correction?`<p class="better">${esc(t.correction.better)}</p>
+             <p class="gloss" dir="${h.dir}">${esc(t.correction.why)}</p>
+             <div class="acts"><button class="act gold" data-drill="${esc(t.correction.better)}" dir="${h.dir}">${esc(h.say)}</button></div>`:''}
+         </div>`).join('') + (S.busy?'<p class="dots">· · ·</p>':'');
+  feed.scrollTop = feed.scrollHeight;
+
+  // bar
+  $('compose').hidden = S.callOn;
+  $('incall').hidden  = !S.callOn;
+  if(S.callOn){
+    $('ring').hidden = S.phase!=='listening';
+    $('orb').className = 'orb'+(S.phase==='speaking'?' talking':'');
+    $('state').textContent = S.phase==='listening'?'ESCUCHANDO — habla'
+      : S.phase==='thinking'?'PENSANDO' : S.phase==='speaking'?'MARISOL HABLA':'EN LLAMADA';
+  }
+  const d=$('draft');
+  $('send').className = 'send'+(d.value.trim()?' ready':'');
+
+  // overlay
+  if(S.drill) paintDrill();
+  else if(!$('veilBody').querySelector('.card')) $('veil').hidden=true;
+}
+
+/* ── events ──────────────────────────────────────────────── */
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.dataset.lv){ S.level=b.dataset.lv; DB.set('level',S.level); paint(); }
+  if(b.dataset.hp){ S.help=b.dataset.hp; DB.set('help',S.help); paint(); }
+  if(b.dataset.sc){ S.scene=b.dataset.sc; DB.set('scene',S.scene); paint(); }
+  if(b.dataset.say){ speak(b.dataset.say); }
+  if(b.dataset.drill){ startDrill(b.dataset.drill); }
+  if(b.dataset.keep){ keep({es:b.dataset.keep, meaning:b.dataset.mean||''}); }
+  if(b.dataset.del){ drop(b.dataset.del); }
+  if(b.dataset.fill){ $('draft').value = b.dataset.fill; $('draft').focus(); paint(); }
+});
+$('tFix').onclick = ()=>{ S.drawer = S.drawer==='fix'?null:'fix'; paint(); };
+$('tVoc').onclick = ()=>{ S.drawer = S.drawer==='voc'?null:'voc'; paint(); };
+$('tSet').onclick = openSetup;
+$('call').onclick = startCall;
+$('orb').onclick  = endCall;
+$('hang').onclick = endCall;
+$('send').onclick = ()=>{ const v=$('draft').value; $('draft').value=''; send(v); };
+$('draft').addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,110)+'px'; paint(); });
+$('draft').addEventListener('keydown', e => {
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); const v=$('draft').value; $('draft').value=''; $('draft').style.height='auto'; send(v); }
+});
+
+/* ── boot ────────────────────────────────────────────────── */
+paint();
+if(!DB.get('seen',0)) openIntro();
+else if(!S.key) openSetup();
+
+// A local file opened through the Files app gets an origin the browser
+// distrusts: no microphone, and nothing stays saved. Say so plainly.
+const shaky = !window.isSecureContext || !STORAGE_OK || location.protocol==='content:';
+if(shaky){
+  showErr(!STORAGE_OK
+    ? 'Opened as a local file, so your key and words will not be saved and the mic is blocked. Put it online once — see the note in ⚙ — and this goes away.'
+    : 'Opened as a local file, so the microphone is blocked. Chat works. Put it online once to enable calls.');
+}
+</script>
+</body>
+</html>
