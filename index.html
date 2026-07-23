@@ -260,20 +260,37 @@ Return ONLY this JSON shape:
 correction when used: {"you":"","better":"","why":"one short sentence in ${S.help}"}`;
 }
 
-/* Ask Google which models this key can actually use, and pick a fast one.
-   Model names change over time; discovering beats hardcoding. */
-async function discoverModel(){
+/* Ask Google which models this key can use, ranked best-first.
+   Pinned versions (-001) and preview builds often carry no free quota,
+   so plain aliases are strongly preferred. */
+let CANDIDATES = [];
+
+function rank(n){
+  let s = 0;
+  if(/-\d{3}$/.test(n)) s += 100;              // pinned version: usually no free tier
+  if(/preview|exp|thinking/i.test(n)) s += 60; // limited or metered
+  if(/\d{2}-\d{2}/.test(n)) s += 40;           // date-stamped build
+  if(/2\.5-flash$/.test(n)) s -= 30;
+  else if(/2\.0-flash$/.test(n)) s -= 25;
+  else if(/flash-lite$/.test(n)) s -= 20;
+  else if(/flash/.test(n)) s -= 10;
+  return s;
+}
+
+async function discoverModels(){
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(S.key)}`);
   if(!res.ok) throw new Error('discover');
   const data = await res.json();
   const usable = (data.models||[])
     .filter(m => (m.supportedGenerationMethods||[]).includes('generateContent'))
     .map(m => (m.name||'').replace(/^models\//,''))
-    .filter(n => n && !/vision|embedding|aqa|image|tts|live|native-audio/i.test(n));
-  const pick = usable.find(n=>/flash-lite/.test(n)) || usable.find(n=>/flash/.test(n)) || usable[0];
-  if(!pick) throw new Error('discover');
-  return pick;
+    .filter(n => n && !/vision|embedding|aqa|image|tts|live|native-audio|gemma/i.test(n))
+    .sort((a,b)=>rank(a)-rank(b));
+  if(!usable.length) throw new Error('discover');
+  CANDIDATES = usable;
+  return usable;
 }
+const discoverModel = async () => (await discoverModels())[0];
 
 async function callModel(history, model){
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(S.key)}`;
@@ -287,12 +304,12 @@ async function callModel(history, model){
         generationConfig:{responseMimeType:'application/json', maxOutputTokens:900, temperature:.85},
       }),
     });
-  }catch(e){ const err=new Error('offline'); throw err; }
+  }catch{ throw new Error('offline'); }
 
   if(!res.ok){
     let detail='';
     try{ const b = await res.json(); detail = b?.error?.message || ''; }catch{}
-    const err = new Error(res.status===404 ? 'nomodel' : 'http');
+    const err = new Error(res.status===404 ? 'nomodel' : res.status===429 ? 'quota' : 'http');
     err.status = res.status; err.detail = detail;
     throw err;
   }
@@ -300,16 +317,31 @@ async function callModel(history, model){
 }
 
 async function ask(history){
-  let data;
-  try{
-    data = await callModel(history, S.model);
-  }catch(e){
-    if(e.message!=='nomodel') throw e;
-    // The saved model name is gone or unavailable — find a live one and retry.
-    const fresh = await discoverModel();
-    S.model = fresh; DB.set('model', fresh);
-    data = await callModel(history, fresh);
+  let data, lastErr;
+  const tried = new Set();
+  let list = [S.model];
+
+  for(let attempt=0; attempt<4; attempt++){
+    const model = list.find(m => m && !tried.has(m));
+    if(!model) break;
+    tried.add(model);
+    try{
+      data = await callModel(history, model);
+      if(model !== S.model){ S.model = model; DB.set('model', model); }
+      break;
+    }catch(e){
+      lastErr = e;
+      // Out of quota or model gone: try the next best model rather than giving up.
+      if(e.message==='nomodel' || e.message==='quota'){
+        if(!CANDIDATES.length){ try{ await discoverModels(); }catch{ throw e; } }
+        list = [...list, ...CANDIDATES];
+        continue;
+      }
+      throw e;
+    }
   }
+  if(!data) throw lastErr || new Error('http');
+
   const raw = data?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('') || '';
   const clean = raw.replace(/```json/g,'').replace(/```/g,'').trim();
   try{ return JSON.parse(clean); }
@@ -322,7 +354,7 @@ function explain(e){
   if(e.message==='offline') return 'No connection reached Google. Check your internet and try again.';
   if(e.message==='discover') return 'That API key was rejected by Google. Open ⚙ and paste it again.';
   if(s===400 || s===403) return 'Key problem: ' + (e.detail || 'Google rejected it. Open ⚙ and paste it again.');
-  if(s===429) return "You've hit today's free limit. It resets tomorrow, or switch to a lighter model in ⚙.";
+  if(s===429) return 'Every available model is out of free quota for now. It resets tomorrow — or wait a minute, since there is also a per-minute limit.';
   if(s===503) return 'Google is busy right now. Wait a few seconds and try again.';
   if(s) return `Google returned ${s}. ${e.detail || ''}`.trim();
   return "Couldn't reach the tutor. Check your connection and try again.";
